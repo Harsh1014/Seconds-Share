@@ -13,6 +13,11 @@
     btnCreate: $('btn-create'),
     frmOpen: $('frm-open'),
     inpOpen: $('inp-open'),
+    btnScan: $('btn-scan'),
+    scanPanel: $('scan-panel'),
+    scanVideo: $('scan-video'),
+    scanStatus: $('scan-status'),
+    btnScanCancel: $('btn-scan-cancel'),
     homeError: $('home-error'),
     qr: $('qr'),
     linkText: $('link-text'),
@@ -44,6 +49,12 @@
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   let shareUrl = '';
+  let scanStream = null;
+  let scanFrame = null;
+  let scanActive = false;
+  let lastScanFrameAt = 0;
+  const scanCanvas = document.createElement('canvas');
+  const scanContext = scanCanvas.getContext('2d', { willReadFrequently: true });
   let wakeLock = null;
   let toastTimer = null;
   let activeInBatch = null;
@@ -131,6 +142,7 @@
   }
 
   function goHome(msg) {
+    stopQrScan();
     if (location.pathname !== '/') history.replaceState(null, '', '/');
     shareUrl = '';
     outBatches.clear();
@@ -468,6 +480,7 @@
   /* ---------------- actions ---------------- */
 
   el.btnCreate.addEventListener('click', async () => {
+    stopQrScan();
     homeError('');
     el.btnCreate.disabled = true;
     setStatus('conn', 'Creating link');
@@ -513,6 +526,7 @@
   }
 
   async function startJoin(id) {
+    stopQrScan();
     homeError('');
     show(el.conn);
     el.connText.textContent = 'Joining room ' + prettyRoom(id) + '…';
@@ -537,6 +551,79 @@
     el.inpOpen.value = '';
     startJoin(id);
   });
+
+  function stopQrScan() {
+    scanActive = false;
+    if (scanFrame !== null) cancelAnimationFrame(scanFrame);
+    scanFrame = null;
+    if (scanStream) scanStream.getTracks().forEach((track) => track.stop());
+    scanStream = null;
+    el.scanVideo.pause();
+    el.scanVideo.srcObject = null;
+    el.scanPanel.classList.add('hidden');
+  }
+
+  async function startQrScan() {
+    homeError('');
+    if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      homeError('Camera scanning needs HTTPS. Open the secure share link and try again.');
+      return;
+    }
+    scanActive = true;
+    el.scanPanel.classList.remove('hidden');
+    el.scanStatus.textContent = 'Starting camera…';
+    el.btnScan.disabled = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: 'environment' } }
+      });
+      if (!scanActive) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      scanStream = stream;
+      el.scanVideo.srcObject = stream;
+      await el.scanVideo.play();
+      el.scanStatus.textContent = 'Point the camera at a Seconds Share QR code.';
+      lastScanFrameAt = 0;
+      scanFrame = requestAnimationFrame(scanQrFrame);
+    } catch (err) {
+      stopQrScan();
+      homeError(
+        err && err.name === 'NotAllowedError'
+          ? 'Camera permission was denied. Allow camera access and try again.'
+          : 'Could not start the camera. Check camera access and try again.'
+      );
+    } finally {
+      el.btnScan.disabled = false;
+    }
+  }
+
+  function scanQrFrame(now) {
+    if (!scanActive) return;
+    scanFrame = requestAnimationFrame(scanQrFrame);
+    if (now - lastScanFrameAt < 120 || !el.scanVideo.videoWidth) return;
+    lastScanFrameAt = now;
+    const width = Math.min(800, el.scanVideo.videoWidth);
+    const height = Math.round((width / el.scanVideo.videoWidth) * el.scanVideo.videoHeight);
+    scanCanvas.width = width;
+    scanCanvas.height = height;
+    scanContext.drawImage(el.scanVideo, 0, 0, width, height);
+    const pixels = scanContext.getImageData(0, 0, width, height);
+    const result = jsQR(pixels.data, width, height, { inversionAttempts: 'dontInvert' });
+    if (!result) return;
+    const id = extractId(result.data);
+    if (!id) {
+      el.scanStatus.textContent = 'That QR code is not a Seconds Share link. Keep scanning…';
+      return;
+    }
+    stopQrScan();
+    startJoin(id);
+  }
+
+  el.btnScan.addEventListener('click', startQrScan);
+  el.btnScanCancel.addEventListener('click', stopQrScan);
 
   el.btnFiles.addEventListener('click', () => el.inFiles.click());
   el.btnFolder.addEventListener('click', () => el.inFolder.click());

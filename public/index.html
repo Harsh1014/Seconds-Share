@@ -32,6 +32,12 @@
           <input id="inp-open" type="text" placeholder="Paste link or code" inputmode="text" spellcheck="false">
           <button type="submit" class="btn">Open</button>
         </form>
+        <button id="btn-scan" type="button" class="btn scan-button">Scan QR code</button>
+        <div id="scan-panel" class="scan-panel hidden">
+          <video id="scan-video" playsinline muted></video>
+          <p id="scan-status" class="scan-status">Point the camera at a Seconds Share QR code.</p>
+          <button id="btn-scan-cancel" type="button" class="btn ghost">Cancel scan</button>
+        </div>
         <p id="home-error" class="error hidden"></p>
         <ul class="bullets">
           <li>Nothing is ever uploaded or stored</li>
@@ -107,6 +113,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="/vendor/qrcode.js"></script>
+  <script src="/vendor/jsqr.js"></script>
   <script src="/config.js"></script>
   <script src="/net.js"></script>
   <script src="/app.js"></script>

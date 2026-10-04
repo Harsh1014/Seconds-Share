@@ -90,8 +90,11 @@ test('serves config and vendor bundles', async () => {
   assert.match(await cfg.text(), /__NETCFG/);
   const qr = await fetch(BASE + '/vendor/qrcode.js');
   assert.equal(qr.status, 200);
+  const scanner = await fetch(BASE + '/vendor/jsqr.js');
+  assert.equal(scanner.status, 200);
   const app = await fetch(BASE + '/app.js');
   assert.equal(app.status, 200);
+  assert.match(await (await fetch(BASE + '/')).text(), /btn-scan/);
 });
 
 test('create -> join -> signal relay -> peer-left', async () => {
@@ -150,4 +153,3 @@ test('third peer is rejected with full', async () => {
   guest.close();
   host.close();
 });
-

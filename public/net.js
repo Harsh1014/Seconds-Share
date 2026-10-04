@@ -1,15 +1,12 @@
 'use strict';
 
 const Net = (() => {
-  // Bigger in-flight windows and chunk sizes keep the DataChannel saturated on fast
-  // local LAN links and large file transfers; the old 16 KB/256 KB defaults were a
-  // bottleneck for multi-GB sends.
-  const HIGH = 32 * 1024 * 1024;
-  const LOW = 8 * 1024 * 1024;
-  const FALLBACK_CHUNK = 256 * 1024;
+  const HIGH = 8 * 1024 * 1024;
+  const LOW = 2 * 1024 * 1024;
+  const FALLBACK_CHUNK = 16 * 1024;
   const SINK_MIN = 4 * 1024 * 1024;
   const isSafari = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
-  const CHUNK_CAP = isSafari ? 64 * 1024 : 1024 * 1024;
+  const CHUNK_CAP = isSafari ? 64 * 1024 : 256 * 1024;
   const canSink =
     typeof navigator !== 'undefined' &&
     navigator.storage &&
@@ -237,9 +234,7 @@ const Net = (() => {
 
   function chunkSize() {
     const m = pc && pc.sctp && pc.sctp.maxMessageSize;
-    if (typeof m === 'number' && m > 0) {
-      return Math.max(FALLBACK_CHUNK, Math.min(CHUNK_CAP, m));
-    }
+    if (typeof m === 'number' && m > 0) return Math.min(CHUNK_CAP, m);
     return FALLBACK_CHUNK;
   }
 
@@ -462,8 +457,12 @@ const Net = (() => {
     }
   }
 
-  async function waitForDrain() {
-    while (dc && dc.readyState === 'open' && dc.bufferedAmount > HIGH) {
+  async function waitForDrain(nextBytes = 0, forceProgress = false) {
+    while (
+      dc &&
+      dc.readyState === 'open' &&
+      dc.bufferedAmount + nextBytes > (forceProgress ? LOW : HIGH)
+    ) {
       await new Promise((resolve) => {
         let done = false;
         const finish = () => {
@@ -478,6 +477,24 @@ const Net = (() => {
       });
     }
     if (!dc || dc.readyState !== 'open') throw new Error('channel-closed');
+    if (forceProgress) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (!dc || dc.readyState !== 'open') throw new Error('channel-closed');
+    }
+  }
+
+  async function sendChunk(buf) {
+    while (dc && dc.readyState === 'open') {
+      await waitForDrain(buf.byteLength);
+      try {
+        dc.send(buf);
+        return;
+      } catch (err) {
+        if (!/send queue is full/i.test(err.message || '')) throw err;
+        await waitForDrain(buf.byteLength, true);
+      }
+    }
+    throw new Error('channel-closed');
   }
 
   async function sendBatch(task) {
@@ -509,8 +526,7 @@ const Net = (() => {
         while (offset < size) {
           const end = Math.min(offset + batch.size, size);
           const buf = await item.file.slice(offset, end).arrayBuffer();
-          await waitForDrain();
-          dc.send(buf);
+          await sendChunk(buf);
           offset += buf.byteLength;
           batch.enqueued += buf.byteLength;
         }

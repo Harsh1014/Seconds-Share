@@ -38,6 +38,9 @@ app.use(
     maxAge: '7d'
   })
 );
+app.get('/vendor/jsqr.js', (req, res) =>
+  res.sendFile(path.join(__dirname, 'node_modules', 'jsqr', 'dist', 'jsQR.js'))
+);
 
 const INDEX = path.join(__dirname, 'public', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));

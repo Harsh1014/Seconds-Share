@@ -52,10 +52,10 @@ provided automatically.
 
 - The server only brokers the introduction (room + SDP/ICE relay) - file bytes
   never touch it.
-- WebRTC DataChannel, adaptive chunks (up to 1 MB per message on modern
-  browsers, falling back to 256 KB when needed), streamed with `File.slice()`
-  (memory safe on the sender) and backpressure (`bufferedAmountLow` = 8 MB / 32
-  MB) so the pipe stays saturated.
+- WebRTC DataChannel, adaptive chunks (up to 256 KB per message), streamed with
+  `File.slice()` (memory safe on the sender) and backpressure
+  (`bufferedAmountLow` = 2 MB / 8 MB) so the pipe stays saturated. If a browser
+  temporarily reports a full send queue, the sender waits and retries the chunk.
 - **Receiver streams to disk** via the origin-private file system (OPFS) for any
   file ≥ 4 MB: chunks are written to storage as they arrive, so a 6 GB movie
   never sits in RAM. Small files use an instant in-memory path. Falls back to
@@ -93,6 +93,10 @@ Free options exist (e.g. a small VPS with `coturn`, or free-tier TURN providers)
 Without TURN, such pairs will show "Could not establish a direct connection".
 
 ## Browser support
+
+On the home screen, **Scan QR code** can use the device camera to scan a share
+link inside the app. Camera scanning requires HTTPS (or localhost) and camera
+permission; opening the link with the normal camera app still works too.
 
 | Action        | Safari (iOS 15+) | Chrome / Edge | Firefox |
 | ------------- | ---------------- | ------------- | ------- |
