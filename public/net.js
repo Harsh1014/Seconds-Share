@@ -1,12 +1,15 @@
 'use strict';
 
 const Net = (() => {
-  const HIGH = 8 * 1024 * 1024;
-  const LOW = 2 * 1024 * 1024;
-  const FALLBACK_CHUNK = 16 * 1024;
+  // Bigger in-flight windows and chunk sizes keep the DataChannel saturated on fast
+  // local LAN links and large file transfers; the old 16 KB/256 KB defaults were a
+  // bottleneck for multi-GB sends.
+  const HIGH = 32 * 1024 * 1024;
+  const LOW = 8 * 1024 * 1024;
+  const FALLBACK_CHUNK = 256 * 1024;
   const SINK_MIN = 4 * 1024 * 1024;
   const isSafari = /^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
-  const CHUNK_CAP = isSafari ? 64 * 1024 : 256 * 1024;
+  const CHUNK_CAP = isSafari ? 64 * 1024 : 1024 * 1024;
   const canSink =
     typeof navigator !== 'undefined' &&
     navigator.storage &&
@@ -234,7 +237,9 @@ const Net = (() => {
 
   function chunkSize() {
     const m = pc && pc.sctp && pc.sctp.maxMessageSize;
-    if (typeof m === 'number' && m > 0) return Math.min(CHUNK_CAP, m);
+    if (typeof m === 'number' && m > 0) {
+      return Math.max(FALLBACK_CHUNK, Math.min(CHUNK_CAP, m));
+    }
     return FALLBACK_CHUNK;
   }
 
