@@ -1,0 +1,24 @@
+{
+  "name": "seconds-share",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Instant peer-to-peer file sharing via QR code - no cloud, no upload wait.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode-generator": "^1.4.4",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.12.0"
+  }
+}

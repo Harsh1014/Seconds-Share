@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <meta name="description" content="Share files in seconds. Scan a QR code - files go directly between devices, no cloud, no upload wait.">
+  <title>Seconds Share</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234f7cff'/%3E%3Cpath d='M16 7v9l6 4' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32" width="22" height="22"><rect width="32" height="32" rx="7" fill="#4f7cff"/><path d="M16 7v9l6 4" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>
+        <span>Seconds Share</span>
+      </div>
+      <div id="status" class="pill idle"><i></i><span id="status-text">Ready</span></div>
+    </header>
+
+    <main>
+      <!-- HOME -->
+      <section id="scr-home" class="screen">
+        <div class="hero">
+          <h1>Share files in<br><em>seconds</em></h1>
+          <p class="sub">Scan the QR code. Files travel <strong>device to device</strong> - no cloud, no upload wait, no apps. Works iPhone to Android and back.</p>
+        </div>
+        <button id="btn-create" class="btn primary big">Create share link</button>
+        <div class="or"><span>or open a link you received</span></div>
+        <form id="frm-open" class="open-form" autocomplete="off">
+          <input id="inp-open" type="text" placeholder="Paste link or code" inputmode="text" spellcheck="false">
+          <button type="submit" class="btn">Open</button>
+        </form>
+        <p id="home-error" class="error hidden"></p>
+        <ul class="bullets">
+          <li>Nothing is ever uploaded or stored</li>
+          <li>Same Wi-Fi = LAN speed, big files in seconds</li>
+          <li>Works in the browser on any phone</li>
+        </ul>
+      </section>
+
+      <!-- WAITING FOR PEER (QR) -->
+      <section id="scr-wait" class="screen hidden">
+        <div class="qr-card">
+          <div id="qr" class="qr"></div>
+        </div>
+        <p class="qr-hint">Scan with your phone camera</p>
+        <div class="link-row">
+          <input id="link-text" type="text" readonly value="">
+          <button id="btn-copy" class="btn">Copy</button>
+        </div>
+        <div class="waiting-line"><span class="dot-pulse"></span><span>Waiting for device to join&hellip;</span></div>
+        <button id="btn-cancel" class="btn ghost">Cancel</button>
+      </section>
+
+      <!-- CONNECTING -->
+      <section id="scr-conn" class="screen hidden">
+        <div class="spinner" aria-hidden="true"></div>
+        <p id="conn-text">Connecting devices&hellip;</p>
+        <p class="hint" id="conn-hint">Keep both tabs open</p>
+      </section>
+
+      <!-- ROOM / TRANSFER -->
+      <section id="scr-room" class="screen hidden">
+        <div class="peer-bar">
+          <span class="dot ok"></span>
+          <span id="peer-text">Connected</span>
+          <button id="btn-leave" class="btn ghost sm">Leave</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Send</h2></div>
+          <div class="tiles">
+            <button id="btn-files" class="tile"><b>Files</b><span>choose any files</span></button>
+            <button id="btn-folder" class="tile"><b>Folder</b><span>whole folder</span></button>
+            <button id="btn-photo" class="tile"><b>Camera</b><span>photo now</span></button>
+            <button id="btn-text" class="tile"><b>Text</b><span>link or note</span></button>
+          </div>
+          <div id="text-box" class="text-box hidden">
+            <textarea id="txt" rows="3" placeholder="Type or paste text / a link&hellip;"></textarea>
+            <button id="btn-send-text" class="btn primary">Send text</button>
+          </div>
+          <p class="drop-hint">or drop files anywhere on this screen</p>
+          <input type="file" id="in-files" multiple hidden>
+          <input type="file" id="in-folder" webkitdirectory multiple hidden>
+          <input type="file" id="in-photo" accept="image/*" capture="environment" hidden>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Transfers</h2>
+            <div class="rate" id="rate"></div>
+          </div>
+          <ul id="tr-list" class="tr-list"></ul>
+          <p id="tr-empty" class="empty">Nothing yet - send something</p>
+          <button id="btn-save-all" class="btn primary hidden">Save all received</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Files never touch a server</span>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/vendor/qrcode.js"></script>
+  <script src="/config.js"></script>
+  <script src="/net.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
